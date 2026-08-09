@@ -2,6 +2,7 @@
 """Fetch pool-themed stock photos from Pexels for Piscine Nette Salon."""
 import json
 import os
+import re
 import sys
 import time
 import urllib.parse
@@ -38,6 +39,37 @@ def download(url, dest_path):
         f.write(resp.read())
 
 
+CREDIT_LINE_RE = re.compile(r"^- `([^`]+)` — (.+)$")
+
+
+def load_existing_credits():
+    """Parse assets/CREDITS.md (if present) into {filename: full_credit_line}.
+
+    The stored line keeps its trailing newline so it can be reused verbatim
+    when rewriting the file.
+    """
+    credits_by_file = {}
+    if not os.path.exists(CREDITS_PATH):
+        return credits_by_file
+    with open(CREDITS_PATH, encoding="utf-8") as f:
+        for line in f:
+            match = CREDIT_LINE_RE.match(line.rstrip("\n"))
+            if match:
+                filename = match.group(1)
+                credits_by_file[filename] = line if line.endswith("\n") else line + "\n"
+    return credits_by_file
+
+
+def write_credits(manifest, credits_by_file):
+    lines = ["# Image credits\n\n", "All photos from [Pexels](https://www.pexels.com), free to use.\n\n"]
+    for entry in manifest:
+        filename = entry["filename"]
+        if filename in credits_by_file:
+            lines.append(credits_by_file[filename])
+    with open(CREDITS_PATH, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+
 def main():
     if not API_KEY:
         print("ERROR: set PEXELS_API_KEY environment variable", file=sys.stderr)
@@ -47,33 +79,27 @@ def main():
         manifest = json.load(f)
 
     os.makedirs(ASSETS_DIR, exist_ok=True)
-    credits_lines = ["# Image credits\n\n", "All photos from [Pexels](https://www.pexels.com), free to use.\n\n"]
-    if os.path.exists(CREDITS_PATH):
-        with open(CREDITS_PATH, encoding="utf-8") as f:
-            existing = f.read()
-    else:
-        existing = ""
+    credits_by_file = load_existing_credits()
 
     for entry in manifest:
         dest = os.path.join(ASSETS_DIR, entry["filename"])
         if os.path.exists(dest):
             print(f"SKIP (already downloaded): {entry['filename']}")
-            continue
-        print(f"Searching: {entry['query']}")
-        photo = search_photo(entry["query"])
-        download(photo["src"]["large"], dest)
-        credit_line = (
-            f"- `{entry['filename']}` — photo by {photo['photographer']} "
-            f"({photo['photographer_url']}) via Pexels: {photo['url']}\n"
-        )
-        credits_lines.append(credit_line)
-        # Write credits immediately after each successful download (not only
-        # at the end) so a partial run never loses attribution for the
-        # images it did fetch.
-        with open(CREDITS_PATH, "w", encoding="utf-8") as f:
-            f.writelines(credits_lines)
-        print(f"Saved: {dest}")
-        time.sleep(1)
+        else:
+            print(f"Searching: {entry['query']}")
+            photo = search_photo(entry["query"])
+            download(photo["src"]["large"], dest)
+            credit_line = (
+                f"- `{entry['filename']}` — photo by {photo['photographer']} "
+                f"({photo['photographer_url']}) via Pexels: {photo['url']}\n"
+            )
+            credits_by_file[entry["filename"]] = credit_line
+            print(f"Saved: {dest}")
+            time.sleep(1)
+        # Rewrite credits after each entry (whether skipped or downloaded) so
+        # a partial run never loses attribution for pre-existing files and
+        # CREDITS.md always reflects the full, correctly-ordered set.
+        write_credits(manifest, credits_by_file)
 
 
 if __name__ == "__main__":
