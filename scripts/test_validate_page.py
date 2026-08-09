@@ -15,6 +15,8 @@ VALID_VILLAGE_PAGE = """
 <script type="application/ld+json">{"@type": "Service", "areaServed": {"name": "Pélissanne"}}</script>
 </head><body>
 Pélissanne, village au pied de la chaîne de la Trévaresse.
+<h3>On vous recontacte pour cerner la demande</h3>
+<h3>Un professionnel qualifié intervient chez vous</h3>
 <form action="https://formsubmit.co/nicolas@noilhan.com" method="POST">
 <input type="text" name="_honey" style="display:none">
 </form>
@@ -28,6 +30,8 @@ VALID_HUB_PAGE = """
 <link rel="canonical" href="https://a-louer.github.io/piscine-entretien-salon/">
 <script type="application/ld+json">{"@type": "Service", "areaServed": {"name": "Salon-de-Provence"}}</script>
 </head><body>
+<h3>On vous recontacte pour cerner la demande</h3>
+<h3>Un professionnel qualifié intervient chez vous</h3>
 <form action="https://formsubmit.co/nicolas@noilhan.com" method="POST">
 <input type="text" name="_honey" style="display:none">
 </form>
@@ -108,6 +112,36 @@ class ValidatePageTests(unittest.TestCase):
         )
         errors = validate(html, "pelissanne", VILLAGES, is_hub=False)
         self.assertIn("Missing formsubmit.co lead form", errors)
+
+    def test_step3_copy_present_passes(self):
+        errors = validate(VALID_VILLAGE_PAGE, "pelissanne", VILLAGES, is_hub=False)
+        self.assertNotIn("Missing or altered honest-intermediary step 3 copy", errors)
+
+    def test_step3_copy_altered_fails(self):
+        html = VALID_VILLAGE_PAGE.replace(
+            "<h3>Un professionnel qualifié intervient chez vous</h3>",
+            "<h3>Un professionnel qualifié du secteur intervient chez vous</h3>",
+        )
+        errors = validate(html, "pelissanne", VILLAGES, is_hub=False)
+        self.assertIn("Missing or altered honest-intermediary step 3 copy", errors)
+
+    def test_area_served_matches_village_passes(self):
+        errors = validate(VALID_VILLAGE_PAGE, "pelissanne", VILLAGES, is_hub=False)
+        self.assertNotIn(
+            "JSON-LD areaServed block does not contain village name 'Pélissanne'", errors
+        )
+
+    def test_area_served_wrong_village_fails(self):
+        # The JSON-LD block names a different village than page_slug, even
+        # though the correct village name still appears elsewhere in the body.
+        html = VALID_VILLAGE_PAGE.replace(
+            '<script type="application/ld+json">{"@type": "Service", "areaServed": {"name": "Pélissanne"}}</script>',
+            '<script type="application/ld+json">{"@type": "Service", "areaServed": {"name": "Grans"}}</script>',
+        )
+        errors = validate(html, "pelissanne", VILLAGES, is_hub=False)
+        self.assertIn(
+            "JSON-LD areaServed block does not contain village name 'Pélissanne'", errors
+        )
 
 
 if __name__ == "__main__":

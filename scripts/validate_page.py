@@ -38,6 +38,24 @@ def validate(html, page_slug, villages, is_hub=False):
     if 'name="_honey"' not in html:
         errors.append("Missing honeypot anti-spam field")
 
+    if (
+        "On vous recontacte pour cerner la demande" not in html
+        or "Un professionnel qualifié intervient chez vous" not in html
+    ):
+        errors.append("Missing or altered honest-intermediary step 3 copy")
+
+    ld_json_match = re.search(
+        r'<script type="application/ld\+json">(.*?)</script>', html, re.DOTALL
+    )
+    if not is_hub:
+        current = next((v for v in villages if v["slug"] == page_slug), None)
+        if current:
+            ld_json_content = ld_json_match.group(1) if ld_json_match else ""
+            if current["name"] not in ld_json_content:
+                errors.append(
+                    f"JSON-LD areaServed block does not contain village name '{current['name']}'"
+                )
+
     other_villages = [v for v in villages if v["slug"] != page_slug]
     if is_hub:
         expected_min = len(villages)
