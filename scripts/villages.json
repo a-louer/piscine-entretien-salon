@@ -1,0 +1,16 @@
+[
+  {"name": "Pélissanne", "slug": "pelissanne", "intro": "Pélissanne, village au pied de la chaîne de la Trévaresse, à 5 minutes de Salon-de-Provence."},
+  {"name": "Grans", "slug": "grans", "intro": "Grans, aux portes de la plaine de la Crau, à 7 km au sud-ouest de Salon-de-Provence."},
+  {"name": "Lançon-Provence", "slug": "lancon-provence", "intro": "Lançon-Provence, aux portes de l'étang de Berre, à une quinzaine de kilomètres au nord-est de Salon-de-Provence."},
+  {"name": "Eyguières", "slug": "eyguieres", "intro": "Eyguières, au pied du massif des Alpilles, à l'est de Salon-de-Provence."},
+  {"name": "Miramas", "slug": "miramas", "intro": "Miramas, dans la plaine de la Crau, tout près de l'étang de Berre, à l'ouest de Salon-de-Provence."},
+  {"name": "Berre-l'Étang", "slug": "berre-letang", "intro": "Berre-l'Étang, sur les rives de l'étang de Berre, au sud de Salon-de-Provence."},
+  {"name": "La Barben", "slug": "la-barben", "intro": "La Barben, dans la vallée de la Touloubre, au sud-est de Salon-de-Provence."},
+  {"name": "Alleins", "slug": "alleins", "intro": "Alleins, village perché dominant la vallée de la Durance, au nord de Salon-de-Provence."},
+  {"name": "Aurons", "slug": "aurons", "intro": "Aurons, petit village rural sur le plateau au nord de Salon-de-Provence."},
+  {"name": "Sénas", "slug": "senas", "intro": "Sénas, aux portes de la vallée de la Durance et des Alpilles, au nord-est de Salon-de-Provence."},
+  {"name": "Charleval", "slug": "charleval", "intro": "Charleval, dans la vallée de la Durance, au nord-est de Salon-de-Provence."},
+  {"name": "Lambesc", "slug": "lambesc", "intro": "Lambesc, au pied de la chaîne de la Trévaresse, entre Salon-de-Provence et Aix-en-Provence."},
+  {"name": "La Fare-les-Oliviers", "slug": "la-fare-les-oliviers", "intro": "La Fare-les-Oliviers, réputée pour ses oliveraies, au sud-est de Salon-de-Provence."},
+  {"name": "Velaux", "slug": "velaux", "intro": "Velaux, entre Salon-de-Provence et l'étang de Berre, sur les rives de l'Arc."}
+]
