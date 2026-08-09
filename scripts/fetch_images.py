@@ -20,7 +20,15 @@ CREDITS_PATH = os.path.join(ASSETS_DIR, "CREDITS.md")
 BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 
 
-def search_photo(query):
+def search_photo(query, used_ids):
+    """Return the first result for `query` whose Pexels photo id hasn't
+    already been used elsewhere in this run.
+
+    Different manifest queries can return the same top result (Pexels has a
+    limited pool of pool photos), which previously produced byte-identical
+    "duplicate" images across unrelated village pages. Tracking used ids lets
+    us fall back to the next-best result in the same 5-photo search instead.
+    """
     url = "https://api.pexels.com/v1/search?" + urllib.parse.urlencode(
         {"query": query, "per_page": 5, "orientation": "landscape"}
     )
@@ -30,7 +38,13 @@ def search_photo(query):
     photos = data.get("photos", [])
     if not photos:
         raise RuntimeError(f"No Pexels results for query: {query}")
-    return photos[0]
+    for photo in photos:
+        if photo["id"] not in used_ids:
+            return photo
+    raise RuntimeError(
+        f"All {len(photos)} Pexels results for query {query!r} are already "
+        "used by other manifest entries in this run"
+    )
 
 
 def download(url, dest_path):
@@ -40,6 +54,16 @@ def download(url, dest_path):
 
 
 CREDIT_LINE_RE = re.compile(r"^- `([^`]+)` — (.+)$")
+PEXELS_PHOTO_ID_RE = re.compile(r"-(\d+)/?\s*$")
+
+
+def extract_photo_id(credit_line):
+    """Pull the trailing Pexels photo id out of a credit line's URL, e.g.
+    ".../photo/woman-relaxing-in-pool-at-roccabruna-france-38572363/" -> 38572363.
+    Returns None if the line doesn't match the expected shape.
+    """
+    match = PEXELS_PHOTO_ID_RE.search(credit_line.strip())
+    return int(match.group(1)) if match else None
 
 
 def load_existing_credits():
@@ -80,6 +104,14 @@ def main():
 
     os.makedirs(ASSETS_DIR, exist_ok=True)
     credits_by_file = load_existing_credits()
+    # Seed used_ids from already-downloaded photos too (e.g. pelissanne.jpg,
+    # which we keep as-is), so a re-run never picks a "new" photo that
+    # duplicates one already committed for another village.
+    used_ids = {
+        photo_id
+        for line in credits_by_file.values()
+        if (photo_id := extract_photo_id(line)) is not None
+    }
 
     for entry in manifest:
         dest = os.path.join(ASSETS_DIR, entry["filename"])
@@ -87,7 +119,8 @@ def main():
             print(f"SKIP (already downloaded): {entry['filename']}")
         else:
             print(f"Searching: {entry['query']}")
-            photo = search_photo(entry["query"])
+            photo = search_photo(entry["query"], used_ids)
+            used_ids.add(photo["id"])
             download(photo["src"]["large"], dest)
             credit_line = (
                 f"- `{entry['filename']}` — photo by {photo['photographer']} "
