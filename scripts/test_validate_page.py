@@ -81,6 +81,34 @@ class ValidatePageTests(unittest.TestCase):
         errors = validate(html, "pelissanne", VILLAGES, is_hub=False)
         self.assertTrue(any("not found in page content" in e for e in errors))
 
+    def test_missing_title_fails(self):
+        html = VALID_VILLAGE_PAGE.replace("<title>Entretien piscine Pélissanne</title>", "")
+        errors = validate(html, "pelissanne", VILLAGES, is_hub=False)
+        self.assertIn("Missing <title> tag", errors)
+
+    def test_missing_meta_description_fails(self):
+        html = VALID_VILLAGE_PAGE.replace('<meta name="description" content="Devis gratuit à Pélissanne">', "")
+        errors = validate(html, "pelissanne", VILLAGES, is_hub=False)
+        self.assertIn("Missing meta description", errors)
+
+    def test_missing_json_ld_fails(self):
+        html = VALID_VILLAGE_PAGE.replace(
+            '<script type="application/ld+json">{"@type": "Service", "areaServed": {"name": "Pélissanne"}}</script>',
+            "",
+        )
+        errors = validate(html, "pelissanne", VILLAGES, is_hub=False)
+        self.assertIn("Missing JSON-LD Service structured data", errors)
+
+    def test_missing_form_fails(self):
+        html = VALID_VILLAGE_PAGE.replace(
+            '<form action="https://formsubmit.co/nicolas@noilhan.com" method="POST">\n'
+            '<input type="text" name="_honey" style="display:none">\n'
+            "</form>",
+            "",
+        )
+        errors = validate(html, "pelissanne", VILLAGES, is_hub=False)
+        self.assertIn("Missing formsubmit.co lead form", errors)
+
 
 if __name__ == "__main__":
     unittest.main()
